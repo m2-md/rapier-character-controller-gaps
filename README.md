@@ -4,6 +4,8 @@
 **▶ [Live demo](https://m2-md.github.io/rapier-character-controller-gaps/)** · [Source](https://github.com/m2-md/rapier-character-controller-gaps)
 <!-- LINKS:END -->
 
+> Bridging the gaps in Rapier KinematicCharacterController: custom gravity accumulators, slope sliding angles, and autostepping stair thresholds.
+
 Working code for the article "Why Your Character Hangs in Mid-Air: Rapier's Kinematic
 Controller Only Does Translation". Rapier's stock `KinematicCharacterController`
 (KCC) only resolves translation against collisions — gravity, the coyote frame,
