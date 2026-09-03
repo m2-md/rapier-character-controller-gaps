@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { CharacterMover, type MoveInput } from "../src/character-mover";
 
-// Rapier WASM'ı bütün testlerden önce bir kez ayağa kaldır.
+// Bring up the Rapier WASM once, before all tests.
 beforeAll(async () => {
   await RAPIER.init();
 });
@@ -34,14 +34,14 @@ function buildSim(): Sim {
   return { world, body, mover: new CharacterMover(body, collider, controller) };
 }
 
-// Sabit, elle yazılmış bir girdi dizisi: yürü, zıpla, yön değiştir.
+// A fixed, hand-written input sequence: walk, jump, change direction.
 function scriptedInputs(): MoveInput[] {
   const seq: MoveInput[] = [];
   for (let i = 0; i < 200; i++) {
     seq.push({
-      moveX: i < 100 ? 1 : -1, // ilk yarı sağa, sonra sola
-      moveZ: Math.sin(i / 20) > 0 ? 1 : 0, // dalgalı derinlik
-      jump: i === 40 || i === 90, // iki noktada zıpla
+      moveX: i < 100 ? 1 : -1, // right for the first half, then left
+      moveZ: Math.sin(i / 20) > 0 ? 1 : 0, // wavy depth
+      jump: i === 40 || i === 90, // jump at two points
     });
   }
   return seq;
@@ -52,8 +52,8 @@ function advance(sim: Sim, input: MoveInput): void {
   sim.world.step();
 }
 
-describe("KCC hareket determinizmi", () => {
-  it("aynı girdi dizisi → bit-bit aynı son transform", () => {
+describe("KCC movement determinism", () => {
+  it("same input sequence produces a bit-for-bit identical final transform", () => {
     const a = buildSim();
     const b = buildSim();
     const inputs = scriptedInputs();
@@ -66,13 +66,13 @@ describe("KCC hareket determinizmi", () => {
     const ta = a.body.translation();
     const tb = b.body.translation();
 
-    // Determinizm guard'ı: yaklaşık değil, TAM eşitlik bekliyoruz.
+    // Determinism guard: we expect EXACT equality, not approximate.
     expect(ta.x).toBe(tb.x);
     expect(ta.y).toBe(tb.y);
     expect(ta.z).toBe(tb.z);
   });
 
-  it("karakter yerçekimiyle düşer ve zemine oturur", () => {
+  it("the character falls under gravity and settles on the ground", () => {
     const sim = buildSim();
     const idle: MoveInput = { moveX: 0, moveZ: 0, jump: false };
 
@@ -80,20 +80,20 @@ describe("KCC hareket determinizmi", () => {
     for (let i = 0; i < 180; i++) advance(sim, idle);
     const endY = sim.body.translation().y;
 
-    // y = 2'den başladı, zemine (~0.6: kapsül yarısı + yarıçap) oturmalı.
-    expect(endY).toBeLessThan(startY); // düştü
-    expect(endY).toBeGreaterThan(0.3); // zeminin içine geçmedi
-    expect(sim.mover.grounded).toBe(true); // ve yere oturdu
+    // Started at y = 2, should settle on the ground (~0.6: capsule half + radius).
+    expect(endY).toBeLessThan(startY); // it fell
+    expect(endY).toBeGreaterThan(0.3); // it did not sink into the ground
+    expect(sim.mover.grounded).toBe(true); // and it landed
   });
 
-  it("coyote karesi: uçurumdan çıkınca kısa süre hâlâ zıplanır", () => {
+  it("coyote frame: jumping still works briefly after walking off a ledge", () => {
     const sim = buildSim();
-    // Önce yere otur.
+    // Land on the ground first.
     const idle: MoveInput = { moveX: 0, moveZ: 0, jump: false };
     for (let i = 0; i < 60; i++) advance(sim, idle);
     expect(sim.mover.grounded).toBe(true);
 
-    // Tam yerdeyken zıpla: dikey hız pozitife fırlamalı.
+    // Jump while fully grounded: vertical velocity should shoot positive.
     sim.mover.step({ moveX: 0, moveZ: 0, jump: true }, 1 / 60);
     expect(sim.mover.verticalVelocity).toBeGreaterThan(0);
   });

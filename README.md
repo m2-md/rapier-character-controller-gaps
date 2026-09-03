@@ -1,75 +1,80 @@
-# Rapier KCC — Yerçekimi, Eğim, Basamak, İtme
+# Rapier KCC — Gravity, Slopes, Stairs, Pushing
 
-"Karakter Neden Havada Asılı Kaldı: Rapier'ın Kinematik Controller'ı Yalnızca Öteleme
-Yapar" makalesinin çalışan kodu. Rapier'ın hazır `KinematicCharacterController`'ı
-(KCC) yalnızca çarpışmaya göre öteleme (translation) yapar — yerçekimi, coyote karesi,
-eğim limiti, basamak çıkma (autostep) ve kutu itme senin işin. Bu repo o boşlukları
-doldurur ve hepsini **tarayıcı açmadan, deterministik testle** kanıtlar.
+Working code for the article "Why Your Character Hangs in Mid-Air: Rapier's Kinematic
+Controller Only Does Translation". Rapier's stock `KinematicCharacterController`
+(KCC) only resolves translation against collisions — gravity, the coyote frame,
+the slope limit, stepping up stairs (autostep) and pushing boxes are your job.
+This repo fills those gaps and proves every one of them **with deterministic tests,
+without opening a browser**.
 
-Çekirdek fikir: bütün hareket mantığı (`src/character-mover.ts`) render'dan ayrık.
-Ne `THREE.Mesh` görür, ne kamera, ne `requestAnimationFrame`. Bu yüzden iki özdeş
-Rapier dünyasını aynı girdiyle koşturup son transform'ların **bit-bit** aynı olduğunu
-`toBe` ile ispatlayabiliyoruz.
+Core idea: all of the movement logic (`src/character-mover.ts`) is decoupled from
+rendering. It never sees a `THREE.Mesh`, never a camera, never
+`requestAnimationFrame`. That is why we can run two identical Rapier worlds on the
+same input and prove the final transforms are **bit-for-bit** identical with `toBe`.
 
-## Sürümler
+## Versions
 
-- `@dimforge/rapier3d-compat@0.19.3` — WASM base64 gömülü; **hiçbir Vite eklentisi
-  gerekmez**. Tek kural: `new RAPIER.World(...)`'tan önce `await RAPIER.init()`.
-- `three@0.185.1` — sadece görselleştirme demosu (WebGLRenderer).
+- `@dimforge/rapier3d-compat@0.19.3` — WASM embedded as base64; **no Vite plugin is
+  needed**. One rule only: `await RAPIER.init()` before `new RAPIER.World(...)`.
+- `three@0.185.1` — only for the visualization demo (WebGLRenderer).
 - Vite + TypeScript + Vitest, npm.
 
-## Kurulum
+## Install
 
 ```bash
 npm install
 ```
 
-## Test (çekirdek kanıt — tarayıcı gerekmez)
+## Tests (the core proof — no browser required)
 
 ```bash
 npm test
 ```
 
-7 test yeşil olmalı:
+7 tests should be green:
 
-- **determinism** (3): aynı girdi dizisi → iki dünyada `toBe` ile bit-bit aynı son
-  transform; karakter yerçekimiyle düşüp zemine oturuyor; yerdeyken zıplama dikey
-  hızı yukarı fırlatıyor (coyote).
-- **floating** (1): yerçekimsiz `desired.y = 0` ile kinematik karakter 300 adım
-  sonra bile `y`'de kalıyor — makalenin açılış iddiasının kanıtı.
-- **probes** (3): eğim/basamak/itme sondaları gerçek Rapier çıktısıyla ölçülüyor.
+- **determinism** (3): the same input sequence → bit-for-bit identical final
+  transform in two worlds via `toBe`; the character falls under gravity and settles
+  on the ground; jumping while grounded launches vertical velocity upward (coyote).
+- **floating** (1): with gravity-free `desired.y = 0` the kinematic character is
+  still at the same `y` after 300 steps — proof of the article's opening claim.
+- **probes** (3): the slope / stair / push probes are measured against real Rapier
+  output.
 
-Ölçülen somut sayılar (probe testlerinin `console.log`'undan):
+The concrete measured numbers (from the probe tests' `console.log`):
 
-| Sonda | Sonuç |
+| Probe | Result |
 |---|---|
-| Eğim (15°→55°) | 10.56 → 8.25 → 6.29 → **2.69** → 2.78 m; 45° eşiğinde tırmanma kesiliyor |
-| Basamak (autostep) | kapalı **0** basamak, açık **6** basamak |
-| İtme | kutu 8.93 m sürükleniyor, peakSpeed **5.42 m/s** (yürüme hızı 6'nın altında → patlamıyor), peakEnergy 7.52 J |
+| Slope (15°→55°) | 10.56 → 8.25 → 6.29 → **2.69** → 2.78 m; climbing cuts out at the 45° threshold |
+| Stairs (autostep) | off **0** steps, on **6** steps |
+| Push | box is dragged 8.93 m, peakSpeed **5.42 m/s** (below the walk speed of 6 → no explosion), peakEnergy 7.52 J |
 
-## Çalıştırma (görsel demo)
+## Running it (visual demo)
 
 ```bash
 npm run dev
 ```
 
-Tarayıcıda `http://localhost:5173/` açılır. **`file://` ile AÇMA** — Vite dev sunucusu
-olmadan WASM ve modüller yüklenmez, boş ekran görürsün.
+Opens at `http://localhost:5173/` in the browser. **Do NOT open it with `file://`** —
+without the Vite dev server the WASM and the modules will not load and you get a
+blank screen.
 
-Sunum katmanı "dark cinematic + neon glow": ACES tone mapping, gömülü
-`RoomEnvironment` PBR yansımaları, gölge atan ışıklar ve `UnrealBloomPass` ile
-neon parlama; sol üstte glassmorphism cam bir teşhis paneli.
+The presentation layer is "dark cinematic + neon glow": ACES tone mapping, embedded
+`RoomEnvironment` PBR reflections, shadow-casting lights and neon glow via
+`UnrealBloomPass`; a glassmorphism diagnostics panel in the top left.
 
-Demoda üçüncü şahıs kapsül bir karakter var:
+The demo has a third-person capsule character:
 
-- **WASD** ile yürür, **Boşluk** ile zıplar.
-- Sahnede düz zemin, 30°/45°/55° rampalar, bir merdiven ve itilecek dinamik kutular.
-- Sol üstteki overlay hareket katmanının canlı hâlini gösterir: dikey hız eğrisi
-  (düşüş-zıplama parabolü), `grounded` lambası, coyote penceresi ve kutu iterken
-  yükselen enerji çubuğu. Çarpışma normalleri sahnede küçük kırmızı oklarla çizilir.
+- Walks with **WASD**, jumps with **Space**.
+- The scene has flat ground, 30°/45°/55° ramps, a staircase and dynamic boxes to push.
+- The overlay in the top left shows the movement layer live: the vertical velocity
+  curve (the fall-jump parabola), the `grounded` lamp, the coyote window and the
+  energy bar rising while a box is pushed. Collision normals are drawn in the scene
+  as small red arrows.
 
-Karakter 45°'ye kadar rampaları tırmanır, daha diklerde tırmanmayı bırakır; merdiveni
-autostep ile çıkar; kutuları patlatmadan önüne katıp iter.
+The character climbs ramps up to 45° and stops climbing on anything steeper; it goes
+up the staircase with autostep; it shoves the boxes ahead of it without blowing
+them up.
 
 ## Build
 
@@ -77,41 +82,41 @@ autostep ile çıkar; kutuları patlatmadan önüne katıp iter.
 npm run build
 ```
 
-`tsc && vite build`. `vite.config.ts` build hedefini `esnext`'e çeker çünkü `main.ts`
-açılışta top-level `await RAPIER.init()` çağırır.
+`tsc && vite build`. `vite.config.ts` pulls the build target up to `esnext` because
+`main.ts` calls top-level `await RAPIER.init()` on startup.
 
-## Dosya yapısı
+## File layout
 
 ```
 src/
-  rapier-init.ts      # -compat + await RAPIER.init() bootstrap deseni
-  character-mover.ts  # ÇEKIRDEK: yerçekimi (Euler vy), coyote, snap; render'dan ayrık
-  slope-probe.ts      # döndürülmüş rampa (quaternion) → probeSlope(angleDeg)
-  stair-probe.ts      # merdiven kutuları → climbStairs(autostep)
-  push-probe.ts       # dinamik kutu → pushBox() peakEnergy/peakSpeed
-  main.ts             # three.js görselleştirme + input + overlay teşhis
+  rapier-init.ts      # -compat + await RAPIER.init() bootstrap pattern
+  character-mover.ts  # CORE: gravity (Euler vy), coyote, snap; decoupled from render
+  slope-probe.ts      # rotated ramp (quaternion) → probeSlope(angleDeg)
+  stair-probe.ts      # staircase boxes → climbStairs(autostep)
+  push-probe.ts       # dynamic box → pushBox() peakEnergy/peakSpeed
+  main.ts             # three.js visualization + input + diagnostics overlay
   demos/
-    floating.ts       # "havada asılı karakter" minimal kanıtı (yerçekimsiz desired)
+    floating.ts       # minimal proof of the "character hanging in mid-air" (gravity-free desired)
 tests/
-  determinism.test.ts # iki dünya bit-bit aynı; düşme; coyote
-  floating.test.ts    # y sabit kalır (havada asılı)
-  probes.test.ts      # eğim tablosu, autostep karşıtlığı, itme enerjisi
+  determinism.test.ts # two worlds bit-for-bit identical; falling; coyote
+  floating.test.ts    # y stays constant (hanging in mid-air)
+  probes.test.ts      # slope table, autostep contrast, push energy
 ```
 
-## Alınan dersler (makalede de anlatılır)
+## Lessons learned (also covered in the article)
 
-- Kinematik gövde dünyanın yerçekimini **umursamaz**. Dikey hareketi `desired.y`'ye
-  sen koymazsan karakter havada asılı kalır.
-- Yerdeyken `vy`'yi sıfır değil küçük bir negatif (`-2`) yap; `enableSnapToGround` ile
-  birlikte merdiven titremesini önler.
-- `enableAutostep` kapalıyken 25 cm'lik basamak bile karakteri durdurur (görünmez
-  duvar). Açıkken merdivenin tepesine çıkar.
-- Kutu iterken `setCharacterMass`'ı küçük tut; büyük kütle = fizik patlaması
-  (kinetik enerji fırlar). Enerjiyi ölçerek "nazik itiş"i sayıyla ayarla.
-- Rapier determinizmi **aynı sürüm + aynı platform** için geçerlidir; farklı
-  CPU/OS arasında kayan nokta farkları çıkabilir. Test aynı build içinde sağlam bir
-  guard'dır.
+- A kinematic body **does not care** about the world's gravity. If you don't put the
+  vertical motion into `desired.y` yourself, the character hangs in mid-air.
+- While grounded, set `vy` to a small negative value (`-2`) rather than zero;
+  together with `enableSnapToGround` this prevents stair jitter.
+- With `enableAutostep` off, even a 25 cm step stops the character dead (an invisible
+  wall). With it on, the character walks to the top of the staircase.
+- Keep `setCharacterMass` small when pushing boxes; a large mass = physics explosion
+  (kinetic energy shoots up). Measure the energy to tune the "gentle shove" by number.
+- Rapier's determinism holds for the **same version + same platform**; floating-point
+  differences can show up across CPUs/OSes. The test is a solid guard within the same
+  build.
 
-## Lisans
+## License
 
 MIT

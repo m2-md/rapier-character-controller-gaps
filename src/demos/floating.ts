@@ -1,16 +1,16 @@
-// floating.ts — makalenin açılış iddiasının minimal kanıtı:
-// kinematik gövde + yerçekimsiz "desired" → karakter havada asılı kalır.
+// floating.ts — the minimal proof of the article's opening claim:
+// kinematic body + gravity-free "desired" → the character hangs in mid-air.
 import RAPIER from "@dimforge/rapier3d-compat";
 
 await RAPIER.init();
 const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 
-// Zemin: sabit, geniş, ince bir kutu.
+// Ground: a fixed, wide, thin box.
 const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
 world.createCollider(RAPIER.ColliderDesc.cuboid(50, 0.1, 50), groundBody);
 
-// Karakter: kinematic-position-based gövde + kapsül collider.
-// capsule(halfHeight, radius): yarım-yükseklik 0.5, yarıçap 0.3.
+// Character: kinematic-position-based body + capsule collider.
+// capsule(halfHeight, radius): half-height 0.5, radius 0.3.
 const charBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 5, 0),
 );
@@ -19,21 +19,21 @@ const charCollider = world.createCollider(
   charBody,
 );
 
-// Character controller. Tek argüman "offset": collider'ı yüzeylerden
-// ayrı tutan minik bir boşluk (ör. 1 cm). Sıfır verirsen yüzeye yapışır
-// ve sayısal titreme başlar.
+// Character controller. The single argument is the "offset": a tiny gap that
+// keeps the collider away from surfaces (e.g. 1 cm). Pass zero and it sticks to
+// the surface and numerical jitter starts.
 const controller = world.createCharacterController(0.01);
-controller.setUp({ x: 0, y: 1, z: 0 }); // "yukarı" +Y — grounded testi buna bakar
+controller.setUp({ x: 0, y: 1, z: 0 }); // "up" is +Y — the grounded test looks at this
 
-// Oyuncunun İSTEDİĞİ hareket. Sadece yatay: yerçekimi YOK.
+// The movement the player WANTS. Horizontal only: NO gravity.
 const desired = { x: 0.05, y: 0, z: 0 };
 
-// Controller çarpışmaları çözer ama isteği kendisi ÜRETMEZ.
+// The controller resolves collisions but does not PRODUCE the request itself.
 controller.computeColliderMovement(charCollider, desired);
 const corrected = controller.computedMovement();
 
-// Düzeltilmiş hareketi mevcut pozisyona ekleyip gövdeye "bir sonraki
-// kinematik pozisyon" olarak veriyoruz. world.step() bunu uygular.
+// We add the corrected movement to the current position and hand it to the body
+// as the "next kinematic position". world.step() applies it.
 const t = charBody.translation();
 charBody.setNextKinematicTranslation({
   x: t.x + corrected.x,
@@ -43,7 +43,7 @@ charBody.setNextKinematicTranslation({
 
 world.step();
 
-// --- Kanıt: yerçekimsiz istekle döngüde de y hiç değişmez ---
+// --- Proof: with a gravity-free request y never changes in the loop either ---
 const startY = charBody.translation().y;
 for (let i = 0; i < 300; i++) {
   controller.computeColliderMovement(charCollider, desired);
@@ -59,5 +59,5 @@ for (let i = 0; i < 300; i++) {
 const endY = charBody.translation().y;
 // eslint-disable-next-line no-console
 console.log(
-  `floating demo → başlangıç y=${startY.toFixed(4)}, 300 adım sonra y=${endY.toFixed(4)} (havada asılı)`,
+  `floating demo → start y=${startY.toFixed(4)}, after 300 steps y=${endY.toFixed(4)} (hanging in mid-air)`,
 );

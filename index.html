@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rapier KCC — Yerçekimi, Eğim, Basamak, İtme</title>
+    <title>Rapier KCC — Gravity, Slopes, Stairs, Pushing</title>
     <style>
       :root {
         --cyan: #22d3ee;
@@ -42,7 +42,7 @@
         height: 100vh;
       }
 
-      /* Sinematik vignette — kenarları karanlığa çeker. */
+      /* Cinematic vignette — pulls the edges into darkness. */
       #vignette {
         position: fixed;
         inset: 0;
@@ -55,7 +55,7 @@
         z-index: 1;
       }
 
-      /* --- Cam paneli --- */
+      /* --- Glass panel --- */
       .panel {
         position: fixed;
         z-index: 2;
@@ -76,7 +76,7 @@
         padding: 16px 16px 18px;
       }
 
-      /* Marka başlığı. */
+      /* Brand heading. */
       .brand {
         display: flex;
         align-items: center;
@@ -166,7 +166,7 @@
           background 220ms ease;
       }
 
-      /* --- Kontrol pill'i --- */
+      /* --- Controls pill --- */
       #controls {
         position: fixed;
         z-index: 2;

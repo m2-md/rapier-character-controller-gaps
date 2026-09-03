@@ -1,6 +1,6 @@
-// view/hud.ts — neon teşhis HUD'u. vy grafiği overlay canvas'ına glow'lu
-// çizilir (shadowBlur); sayısal durum + kutu enerji metresi DOM'da güncellenir.
-// Sadece SUNUM; ölçülen değerler CharacterMover'dan geliyor, dokunulmadı.
+// view/hud.ts — the neon diagnostics HUD. The vy graph is drawn with a glow
+// (shadowBlur) onto the overlay canvas; numeric state + box energy meter update in
+// the DOM. PRESENTATION only; the values come from CharacterMover, untouched.
 
 export interface HudElements {
   overlay: HTMLCanvasElement;
@@ -47,7 +47,7 @@ export class Hud {
     const mid = h * 0.5;
     ctx.clearRect(0, 0, w, h);
 
-    // Sıfır çizgisi.
+    // Zero line.
     ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -61,7 +61,7 @@ export class Hud {
     const px = (i: number): number => (i / (this.cap - 1)) * w;
     const start = this.cap - this.history.length;
 
-    // Eğri altı neon dolgu.
+    // Neon fill under the curve.
     ctx.beginPath();
     ctx.moveTo(px(start), mid);
     this.history.forEach((vy, i) => ctx.lineTo(px(start + i), scaleY(vy)));
@@ -73,7 +73,7 @@ export class Hud {
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Neon çizgi + glow.
+    // Neon line + glow.
     ctx.save();
     ctx.shadowColor = CYAN;
     ctx.shadowBlur = 14;
@@ -89,7 +89,7 @@ export class Hud {
     });
     ctx.stroke();
 
-    // Baş nokta parlayan uç.
+    // Glowing head point.
     const last = this.history[this.history.length - 1];
     const hx = px(this.cap - 1);
     const hy = scaleY(last);

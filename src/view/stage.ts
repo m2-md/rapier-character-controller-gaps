@@ -1,10 +1,10 @@
-// view/stage.ts — sinematik sahne kurulumu (dark cinematic + neon glow).
-// Sadece SUNUM: renderer/tone mapping, PBR ortam (RoomEnvironment), gölge atan
-// ışıklar, zemin ve neon PBR materyaller. Fizik/probe davranışına dokunmaz.
+// view/stage.ts — cinematic scene setup (dark cinematic + neon glow).
+// PRESENTATION only: renderer/tone mapping, PBR environment (RoomEnvironment),
+// shadow-casting lights, ground and neon PBR materials. Physics/probes untouched.
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-// Neon accent paleti (makale görsel spec).
+// Neon accent palette (the article's visual spec).
 export const ACCENT = {
   cyan: 0x22d3ee,
   violet: 0xa78bfa,
@@ -20,8 +20,8 @@ export interface Stage {
   key: THREE.DirectionalLight;
 }
 
-// Derin radial gradient arka plan — CSS paletiyle aynı tonlar.
-// Sahne içi doku olarak durur ki fog zemini bu tona doğru eritsin.
+// Deep radial gradient background — the same tones as the CSS palette.
+// It lives as an in-scene texture so the fog dissolves the ground toward this tone.
 function makeBackgroundTexture(): THREE.Texture {
   const size = 1024;
   const c = document.createElement("canvas");
@@ -60,7 +60,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.background = makeBackgroundTexture();
   scene.fog = new THREE.FogExp2(0x080a11, 0.02);
 
-  // PBR yansımalar için gömülü RoomEnvironment → PMREM (harici HDRI YOK).
+  // Embedded RoomEnvironment → PMREM for PBR reflections (NO external HDRI).
   const pmrem = new THREE.PMREMGenerator(renderer);
   const roomEnv = new RoomEnvironment();
   scene.environment = pmrem.fromScene(roomEnv, 0.04).texture;
@@ -75,7 +75,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   );
   camera.position.set(0, 7, 12);
 
-  // Yönlü key ışık — yumuşak gölge atar, hafif sıcak ton.
+  // Directional key light — casts a soft shadow, slightly warm tone.
   const key = new THREE.DirectionalLight(0xfff1de, 2.6);
   key.position.set(9, 17, 7);
   key.castShadow = true;
@@ -93,10 +93,10 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   scene.add(key);
   scene.add(key.target);
 
-  // Hemisphere fill — gökten mavi, yerden koyu dolgu.
+  // Hemisphere fill — blue from the sky, dark fill from the ground.
   scene.add(new THREE.HemisphereLight(0x9fb4ff, 0x0a0c16, 0.55));
 
-  // Renkli rim ışıklar — sinematik neon kenar (cyan + violet).
+  // Colored rim lights — cinematic neon edge (cyan + violet).
   const rimCyan = new THREE.DirectionalLight(ACCENT.cyan, 1.4);
   rimCyan.position.set(-13, 5, -10);
   scene.add(rimCyan);
@@ -107,8 +107,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   return { renderer, scene, camera, key };
 }
 
-// Geniş zemin: gölge alır, merkezden dışa fog ile karanlığa erir. Üstünde
-// solan neon grid.
+// Wide ground: receives shadows, dissolves into darkness outward via fog. A
+// fading neon grid on top of it.
 export function createGround(scene: THREE.Scene): void {
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(260, 260),
@@ -133,7 +133,7 @@ export function createGround(scene: THREE.Scene): void {
   scene.add(grid);
 }
 
-// --- Neon PBR materyal fabrikaları (sadece görsel) ---
+// --- Neon PBR material factories (visual only) ---
 
 export function rampMaterial(color: number): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({

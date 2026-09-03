@@ -1,5 +1,5 @@
-// tests/floating.test.ts — makalenin açılış iddiasının testi:
-// yerçekimsiz "desired" ile kinematik karakter havada asılı kalır (y sabit).
+// tests/floating.test.ts — the test for the article's opening claim:
+// with a gravity-free "desired" the kinematic character hangs in mid-air (y constant).
 import { beforeAll, describe, expect, it } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 
@@ -7,8 +7,8 @@ beforeAll(async () => {
   await RAPIER.init();
 });
 
-describe("havada asılı karakter", () => {
-  it("desired.y = 0 ise 300 adım sonra bile y başlangıçta kalır", () => {
+describe("character hanging in mid-air", () => {
+  it("keeps its starting y even after 300 steps when desired.y = 0", () => {
     const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 
     const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
@@ -24,7 +24,7 @@ describe("havada asılı karakter", () => {
     const controller = world.createCharacterController(0.01);
     controller.setUp({ x: 0, y: 1, z: 0 });
 
-    const desired = { x: 0.05, y: 0, z: 0 }; // yerçekimi YOK
+    const desired = { x: 0.05, y: 0, z: 0 }; // NO gravity
     const startY = charBody.translation().y;
     for (let i = 0; i < 300; i++) {
       controller.computeColliderMovement(charCollider, desired);
@@ -39,7 +39,7 @@ describe("havada asılı karakter", () => {
     }
     const endY = charBody.translation().y;
 
-    // Yatayda ilerledi ama dikeyde bir milimetre bile düşmedi.
+    // It moved horizontally but did not drop a single millimeter vertically.
     expect(charBody.translation().x).toBeGreaterThan(1);
     expect(endY).toBe(startY);
   });

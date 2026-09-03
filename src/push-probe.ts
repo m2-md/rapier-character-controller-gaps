@@ -3,9 +3,9 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { CharacterMover, type MoveInput } from "./character-mover";
 
 export interface PushResult {
-  peakEnergy: number; // kutunun gördüğü en yüksek kinetik enerji (J)
-  peakSpeed: number; // en yüksek hız (m/s)
-  boxDisplacement: number; // kutu ne kadar itildi (m)
+  peakEnergy: number; // highest kinetic energy the box saw (J)
+  peakSpeed: number; // highest speed (m/s)
+  boxDisplacement: number; // how far the box was pushed (m)
 }
 
 export function pushBox(): PushResult {
@@ -14,7 +14,7 @@ export function pushBox(): PushResult {
   const g = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
   world.createCollider(RAPIER.ColliderDesc.cuboid(20, 0.1, 20), g);
 
-  // İtilecek dinamik kutu.
+  // The dynamic box to be pushed.
   const boxBody = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic().setTranslation(1.5, 0.5, 0),
   );

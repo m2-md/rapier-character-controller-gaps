@@ -1,7 +1,7 @@
 {
   "name": "rapier-character-controller-gaps",
   "version": "1.0.0",
-  "description": "Rapier KinematicCharacterController'ın bıraktığı boşlukları (yerçekimi, coyote, eğim, autostep, dinamik itme) dolduran ve deterministik olarak test eden çalışan proje",
+  "description": "Bridging the gaps in Rapier KinematicCharacterController: custom gravity accumulators, slope sliding angles, autostepping stair thresholds, and platform momentum.",
   "type": "module",
   "license": "MIT",
   "scripts": {

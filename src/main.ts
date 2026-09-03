@@ -1,11 +1,11 @@
-// main.ts — üçüncü şahıs kapsül karakter: yürür, zıplar, rampa tırmanır,
-// merdiven çıkar, kutu iter. Hareket katmanı CharacterMover'da; burada sadece
-// three.js görselleştirme + input + teşhis HUD'u var.
+// main.ts — third-person capsule character: walks, jumps, climbs ramps, goes up
+// stairs, pushes boxes. The movement layer lives in CharacterMover; this file only
+// has the three.js visualization + input + the diagnostics HUD.
 //
-// Sunum katmanı "dark cinematic + neon glow": ACES tone mapping, RoomEnvironment
-// PBR, gölge atan ışıklar ve UnrealBloomPass (bkz. src/view/*). Fizik/probe
-// sayısal davranışı (eğim tablosu, 0-vs-6 basamak, determinizm) DEĞİŞMEDİ —
-// sadece nasıl çizildikleri güzelleştirildi.
+// The presentation layer is "dark cinematic + neon glow": ACES tone mapping,
+// RoomEnvironment PBR, shadow-casting lights and UnrealBloomPass (see src/view/*).
+// The numeric physics/probe behavior (the slope table, 0-vs-6 steps, determinism)
+// did NOT change — only how it is drawn got prettier.
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import { CharacterMover, type MoveInput } from "./character-mover";
@@ -25,7 +25,7 @@ const DEG = Math.PI / 180;
 
 await RAPIER.init();
 
-// ---------- three.js sinematik sahne ----------
+// ---------- three.js cinematic scene ----------
 const canvas = document.getElementById("scene") as HTMLCanvasElement;
 const stage = createStage(canvas);
 const { renderer, scene, camera, key } = stage;
@@ -33,7 +33,7 @@ createGround(scene);
 
 const postfx = createPostFx(renderer, scene, camera);
 
-// ---------- Rapier dünya ----------
+// ---------- Rapier world ----------
 const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 
 interface Dynamic {
@@ -99,8 +99,8 @@ function addDynamicBox(
   dynamics.push({ body, mesh, mass: body.mass() });
 }
 
-// Zemin (fizik collideri — görseli createGround çiziyor; bu kutu neredeyse
-// düz ve zeminin altında kalıyor, sahnede görünmez ama çarpışma yüzeyi bu).
+// Ground (the physics collider — createGround draws the visual; this box is nearly
+// flat and sits under the ground, invisible in the scene, but it is the contact surface).
 addFixedBox(
   30,
   0.1,
@@ -113,8 +113,8 @@ addFixedBox(
   }),
 );
 
-// Rampalar: farklı açılar (Z ekseni etrafında döndürülmüş kutular).
-// Renkler neon accent'e taşındı; açı/konum/collider aynı.
+// Ramps: different angles (boxes rotated around the Z axis).
+// The colors moved to the neon accents; angle/position/collider are unchanged.
 addFixedBox(
   3,
   0.1,
@@ -122,7 +122,7 @@ addFixedBox(
   [-9, 0.9, -3],
   rampMaterial(ACCENT.cyan),
   zQuat(30 * DEG),
-); // 30° tırmanılır
+); // 30° is climbable
 addFixedBox(
   3,
   0.1,
@@ -130,7 +130,7 @@ addFixedBox(
   [-9, 1.6, 4],
   rampMaterial(ACCENT.violet),
   zQuat(45 * DEG),
-); // 45° sınırda
+); // 45° is right at the limit
 addFixedBox(
   3,
   0.1,
@@ -138,9 +138,9 @@ addFixedBox(
   [-2, 2.2, -9],
   rampMaterial(ACCENT.magenta),
   zQuat(55 * DEG),
-); // 55° kaydırır
+); // 55° makes it slide
 
-// Merdiven: art arda yükselen basamaklar (autostep testi).
+// Staircase: successively rising steps (the autostep test).
 const stepH = 0.25;
 const stepD = 0.5;
 for (let i = 0; i < 6; i++) {
@@ -153,12 +153,12 @@ for (let i = 0; i < 6; i++) {
   );
 }
 
-// İtilecek dinamik kutular.
+// Dynamic boxes to be pushed.
 addDynamicBox(0.4, [2, 0.5, 4], 0xf59e0b);
 addDynamicBox(0.4, [3.2, 0.5, 4], 0xf97316);
 addDynamicBox(0.4, [2.4, 0.5, 6], 0xfacc15);
 
-// ---------- Karakter ----------
+// ---------- Character ----------
 const charBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 2, 2),
 );
@@ -170,21 +170,21 @@ const charCollider = world.createCollider(
 const controller = world.createCharacterController(0.01);
 controller.setUp({ x: 0, y: 1, z: 0 });
 
-// Karakter, altındaki zemin bu mesafe içindeyse ona "yapışsın".
-// Eğimden inerken ya da küçük basamaklardan düşerken havalanmayı önler.
+// If the ground below the character is within this distance, "snap" to it.
+// Prevents going airborne when walking down a slope or off small steps.
 controller.enableSnapToGround(0.5);
 
-controller.setMaxSlopeClimbAngle(45 * DEG); // 45°'ye kadar tırman
-controller.setMinSlopeSlideAngle(30 * DEG); // 30°'den dikse kaymaya başla
+controller.setMaxSlopeClimbAngle(45 * DEG); // climb up to 45°
+controller.setMinSlopeSlideAngle(30 * DEG); // start sliding if steeper than 30°
 
 // enableAutostep(maxHeight, minWidth, includeDynamic)
-//  - maxHeight: en fazla bu yükseklikteki basamağa çıkabilir (0.4 m)
-//  - minWidth : üstüne basacak en az bu kadar düz alan olmalı (0.2 m)
-//  - includeDynamic: dinamik cisimleri de basamak sayar mı (true)
+//  - maxHeight: the tallest step it can climb onto (0.4 m)
+//  - minWidth : there must be at least this much flat area to step on (0.2 m)
+//  - includeDynamic: whether dynamic bodies count as steps too (true)
 controller.enableAutostep(0.4, 0.2, true);
 
 controller.setApplyImpulsesToDynamicBodies(true);
-controller.setCharacterMass(1.0); // itme kuvvetini sınırlayan "karakter kütlesi"
+controller.setCharacterMass(1.0); // the "character mass" that caps the push force
 
 const charMesh = new THREE.Mesh(
   new THREE.CapsuleGeometry(0.3, 1.0, 8, 16),
@@ -196,7 +196,7 @@ scene.add(charMesh);
 
 const mover = new CharacterMover(charBody, charCollider, controller);
 
-// Çarpışma normallerini gösteren neon ok havuzu.
+// Pool of neon arrows showing the collision normals.
 const arrowPool: THREE.ArrowHelper[] = [];
 function updateCollisionArrows(): void {
   for (const a of arrowPool) a.visible = false;
@@ -250,7 +250,7 @@ function currentInput(): MoveInput {
   return { moveX, moveZ, jump };
 }
 
-// ---------- Teşhis HUD'u ----------
+// ---------- Diagnostics HUD ----------
 const hud = new Hud({
   overlay: document.getElementById("overlay") as HTMLCanvasElement,
   vy: document.getElementById("stat-vy") as HTMLElement,
@@ -259,12 +259,12 @@ const hud = new Hud({
 });
 let coyoteTimer = 999;
 
-// ---------- Döngü ----------
+// ---------- Loop ----------
 const STEP = 1 / 60;
 let last = performance.now();
 let acc = 0;
 
-// Sinematik kamera: hedef ve konum damping'li takip edilir.
+// Cinematic camera: the target and the position are followed with damping.
 const camTarget = new THREE.Vector3(0, 3, 2);
 
 function frame(now: number): void {
@@ -278,27 +278,27 @@ function frame(now: number): void {
     world.step();
     acc -= STEP;
 
-    // coyote penceresini HUD için yerelde izle
+    // track the coyote window locally, for the HUD
     coyoteTimer = mover.grounded ? 0 : coyoteTimer + STEP;
 
     hud.pushVy(mover.verticalVelocity);
   }
 
-  // (makaledeki okuma deseni — çarpışmaları tek tek gezmek):
+  // (the reading pattern from the article — walking the collisions one by one):
   for (let i = 0; i < controller.numComputedCollisions(); i++) {
     const hit = controller.computedCollision(i);
     if (!hit) continue;
-    // hit.normal1 → çarpışma yüzeyinin normali
-    // hit.toi     → çarpışmaya kadarki "time of impact"
-    // Demo bu normalleri küçük oklarla çizip iticiyi görünür kılıyor.
+    // hit.normal1 → the normal of the contact surface
+    // hit.toi     → the "time of impact" up to the collision
+    // The demo draws these normals as small arrows to make the pusher visible.
   }
   updateCollisionArrows();
 
-  // Karakter mesh senkronu.
+  // Character mesh sync.
   const cp = charBody.translation();
   charMesh.position.set(cp.x, cp.y, cp.z);
 
-  // Dinamik kutu senkronu + en yüksek enerji.
+  // Dynamic box sync + peak energy.
   let boxEnergy = 0;
   for (const d of dynamics) {
     const t = d.body.translation();
@@ -310,12 +310,12 @@ function frame(now: number): void {
     boxEnergy = Math.max(boxEnergy, 0.5 * d.mass * speed * speed);
   }
 
-  // Kamera karakteri sinematik takip eder (konum + hedef damping).
+  // The camera follows the character cinematically (position + target damping).
   camTarget.lerp(new THREE.Vector3(cp.x, cp.y + 1.1, cp.z), 0.1);
   camera.position.lerp(new THREE.Vector3(cp.x, cp.y + 6, cp.z + 11), 0.06);
   camera.lookAt(camTarget);
 
-  // Gölge frustum'unu karaktere kilitle ki gölgeler keskin kalsın.
+  // Lock the shadow frustum to the character so the shadows stay sharp.
   key.target.position.set(cp.x, cp.y, cp.z);
   key.position.set(cp.x + 9, cp.y + 17, cp.z + 7);
 
@@ -327,7 +327,7 @@ function frame(now: number): void {
     boxEnergy,
   });
 
-  // Neon glow için renderer.render yerine composer.render.
+  // composer.render instead of renderer.render, for the neon glow.
   postfx.composer.render();
   requestAnimationFrame(frame);
 }

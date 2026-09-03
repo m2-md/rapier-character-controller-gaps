@@ -2,19 +2,19 @@
 import type RAPIER from "@dimforge/rapier3d-compat";
 
 export interface MoveInput {
-  moveX: number; // -1..1 arası yatay istek
-  moveZ: number; // -1..1 arası derinlik istek
-  jump: boolean; // bu karede zıpla tuşuna basıldı mı
+  moveX: number; // horizontal request, -1..1
+  moveZ: number; // depth request, -1..1
+  jump: boolean; // was the jump key pressed on this frame
 }
 
 export class CharacterMover {
-  private vy = 0; // dikey hız (m/s)
-  private airTime = 0; // en son yerden ayrılalı geçen süre (s)
+  private vy = 0; // vertical velocity (m/s)
+  private airTime = 0; // time elapsed since we last left the ground (s)
 
-  readonly coyoteTime = 0.1; // yerden ayrıldıktan sonra 100 ms zıplama izni
-  private readonly gravity = -30; // "his" için gerçek 9.81'den ağır
-  private readonly jumpSpeed = 9; // v²/2g ≈ 1.35 m zıplama tavanı
-  private readonly moveSpeed = 6; // yatay yürüme hızı (m/s)
+  readonly coyoteTime = 0.1; // 100 ms of jump grace after leaving the ground
+  private readonly gravity = -30; // heavier than the real 9.81, for "feel"
+  private readonly jumpSpeed = 9; // v²/2g ≈ 1.35 m jump ceiling
+  private readonly moveSpeed = 6; // horizontal walk speed (m/s)
 
   constructor(
     private readonly body: RAPIER.RigidBody,
@@ -23,28 +23,28 @@ export class CharacterMover {
   ) {}
 
   step(input: MoveInput, dt: number): void {
-    // computedGrounded(): BİR ÖNCEKİ computeColliderMovement'ın sonucu.
-    // Yani "geçen karede yere değdik mi". Coyote için tam da bu lazım.
+    // computedGrounded(): the result of the PREVIOUS computeColliderMovement.
+    // That is, "did we touch the ground last frame". Exactly what coyote needs.
     const grounded = this.controller.computedGrounded();
     this.airTime = grounded ? 0 : this.airTime + dt;
 
     if (grounded && this.vy <= 0) {
-      // Yerdeyiz ve düşüyorduk: dikey hızı küçük bir aşağı kuvvete sabitle.
-      // Bu, snapToGround ile birlikte karakteri zemine "yapışık" tutar.
+      // Grounded and falling: pin vertical velocity to a small downward force.
+      // Together with snapToGround this keeps the character "glued" to the floor.
       this.vy = -2;
     } else {
-      // Havadayız: yerçekimi hızı biriktirir (Euler).
+      // We are airborne: gravity accumulates velocity (Euler).
       this.vy += this.gravity * dt;
     }
 
-    // Coyote: yere değeli coyoteTime'dan az olduysa zıplamaya hâlâ izin var.
+    // Coyote: if less than coyoteTime has passed since ground contact, jump is on.
     const canJump = this.airTime <= this.coyoteTime;
     if (input.jump && canJump) {
       this.vy = this.jumpSpeed;
-      this.airTime = this.coyoteTime + 1; // coyote'yi "yak": çift zıplama olmasın
+      this.airTime = this.coyoteTime + 1; // "burn" the coyote: no double jump
     }
 
-    // İstek: yatay hızlar + biriken dikey hız, hepsi dt ile mesafeye çevrilir.
+    // The request: horizontal speeds + accumulated vertical speed, dt turns all into distance.
     const desired = {
       x: input.moveX * this.moveSpeed * dt,
       y: this.vy * dt,

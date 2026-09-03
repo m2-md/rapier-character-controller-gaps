@@ -4,21 +4,21 @@ import { CharacterMover, type MoveInput } from "./character-mover";
 
 export interface SlopeResult {
   angleDeg: number;
-  horizontalGain: number; // rampada ne kadar ileri gidebildi (m)
+  horizontalGain: number; // how far up the ramp it got (m)
   climbed: boolean;
 }
 
-/** Verilen açıda bir rampa kurar, karakteri N kare yukarı yürütür, ilerlemeyi ölçer. */
+/** Builds a ramp at the given angle, walks the character up it for N frames, measures the progress. */
 export function probeSlope(angleDeg: number, frames = 120): SlopeResult {
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 
-  // Rampa: bir kutuyu Z ekseni etrafında döndürüp eğimli düzlem yapıyoruz.
+  // Ramp: we rotate a box around the Z axis to make an inclined plane.
   const rad = angleDeg * (Math.PI / 180);
   const half = Math.sin(rad / 2);
   const rampBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
   world.createCollider(
     RAPIER.ColliderDesc.cuboid(10, 0.1, 10)
-      // Quaternion: Z ekseni etrafında rad kadar dönüş.
+      // Quaternion: rotation of rad around the Z axis.
       .setRotation({ x: 0, y: 0, z: half, w: Math.cos(rad / 2) }),
     rampBody,
   );
