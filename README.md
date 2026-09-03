@@ -1,5 +1,9 @@
 # Rapier KCC — Gravity, Slopes, Stairs, Pushing
 
+<!-- LINKS:BEGIN — üretildi: scripts/sync-repo-links.py · elle düzenleme -->
+**▶ [Live demo](https://m2-md.github.io/rapier-character-controller-gaps/)** · [Source](https://github.com/m2-md/rapier-character-controller-gaps)
+<!-- LINKS:END -->
+
 Working code for the article "Why Your Character Hangs in Mid-Air: Rapier's Kinematic
 Controller Only Does Translation". Rapier's stock `KinematicCharacterController`
 (KCC) only resolves translation against collisions — gravity, the coyote frame,
