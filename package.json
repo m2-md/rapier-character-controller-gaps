@@ -1,0 +1,23 @@
+{
+  "name": "rapier-character-controller-gaps",
+  "version": "1.0.0",
+  "description": "Rapier KinematicCharacterController'ın bıraktığı boşlukları (yerçekimi, coyote, eğim, autostep, dinamik itme) dolduran ve deterministik olarak test eden çalışan proje",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.19.3",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rapier KCC — Yerçekimi, Eğim, Basamak, İtme</title>
+    <style>
+      :root {
+        --cyan: #22d3ee;
+        --violet: #a78bfa;
+        --magenta: #f472b6;
+        --ink: #e6e9f2;
+        --muted: rgba(255, 255, 255, 0.55);
+        --glass: rgba(17, 21, 32, 0.55);
+        --hairline: rgba(255, 255, 255, 0.08);
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: radial-gradient(
+          ellipse at 50% 0%,
+          #10141f,
+          #080a11 60%,
+          #05060b
+        );
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      canvas#scene {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* Sinematik vignette — kenarları karanlığa çeker. */
+      #vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse at 50% 42%,
+          transparent 52%,
+          rgba(0, 0, 0, 0.55) 100%
+        );
+        z-index: 1;
+      }
+
+      /* --- Cam paneli --- */
+      .panel {
+        position: fixed;
+        z-index: 2;
+        background: var(--glass);
+        backdrop-filter: blur(14px) saturate(1.2);
+        -webkit-backdrop-filter: blur(14px) saturate(1.2);
+        border: 1px solid var(--hairline);
+        border-radius: 16px;
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      #hud {
+        top: 18px;
+        left: 18px;
+        width: 288px;
+        padding: 16px 16px 18px;
+      }
+
+      /* Marka başlığı. */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .brand-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 14px 2px rgba(34, 211, 238, 0.7);
+      }
+      .brand-title {
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+      }
+      .brand-sub {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .panel-label {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 4px 0 8px;
+      }
+
+      canvas#overlay {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        background: rgba(5, 7, 12, 0.5);
+        border: 1px solid var(--hairline);
+      }
+
+      .stats {
+        display: flex;
+        gap: 10px;
+        margin: 12px 0 4px;
+      }
+      .stat {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--hairline);
+        border-radius: 10px;
+        padding: 8px 10px;
+      }
+      .stat-k {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .stat-v {
+        display: block;
+        font-family: var(--mono);
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 3px;
+        color: var(--cyan);
+      }
+
+      .meter {
+        height: 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+        border: 1px solid var(--hairline);
+      }
+      .meter-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #22d3ee, #34d399);
+        box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+        transition:
+          width 120ms ease-out,
+          background 220ms ease;
+      }
+
+      /* --- Kontrol pill'i --- */
+      #controls {
+        position: fixed;
+        z-index: 2;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--glass);
+        backdrop-filter: blur(14px) saturate(1.2);
+        -webkit-backdrop-filter: blur(14px) saturate(1.2);
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      kbd {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 7px;
+        padding: 3px 8px;
+        min-width: 22px;
+        text-align: center;
+        transition: box-shadow 180ms ease, border-color 180ms ease;
+      }
+      kbd:hover {
+        border-color: rgba(34, 211, 238, 0.6);
+        box-shadow: 0 0 24px rgba(34, 211, 238, 0.4);
+      }
+      .pill-sep {
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 10px;
+        margin: 0 4px 0 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div id="vignette"></div>
+
+    <section id="hud" class="panel">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <div>
+          <div class="brand-title">RAPIER · KCC</div>
+          <div class="brand-sub">character controller gaps</div>
+        </div>
+      </div>
+
+      <div class="panel-label">MOTION TELEMETRY · VY</div>
+      <canvas id="overlay" width="520" height="200"></canvas>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-k">vy m/s</span>
+          <span id="stat-vy" class="stat-v">0.0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k">state</span>
+          <span id="stat-state" class="stat-v" style="font-size: 14px">—</span>
+        </div>
+      </div>
+
+      <div class="panel-label">Box Energy</div>
+      <div class="meter"><div id="energy-fill" class="meter-fill"></div></div>
+    </section>
+
+    <div id="controls">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+      <span class="pill-sep">move</span>
+      <kbd style="min-width: 54px">Space</kbd>
+      <span class="pill-sep">jump</span>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
